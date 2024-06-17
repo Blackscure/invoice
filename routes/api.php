@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MPesaController;
+use App\Http\Controllers\TransactionController;
 
 
 
@@ -18,7 +19,13 @@ Route::post('invoices', [InvoiceController::class, 'store']);
 Route::get('/retrive-invoices', [InvoiceController::class, 'index']);
 
 // Endpoint to retrieve a specific invoice by ID
-Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
+Route::get('/single-invoices/{id}', [InvoiceController::class, 'show']);
+
+
+Route::get('/transactions', [MPesaController::class, 'getTransactions']);
+
+
+
 
 Route::post('/pay/{invoice_number}', [MPesaController::class, 'pay']);
 Route::post('/mpesa/callback', [MPesaController::class, 'callback'])->name('mpesa.callback');

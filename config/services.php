@@ -19,7 +19,7 @@ return [
         'consumer_secret' => env('MPESA_CONSUMER_SECRET'),
         'shortcode' => '174379', // Replace with your shortcode
         'lipa_na_mpesa_online_passkey' => 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919',
-        'callback_url' => 'https://yourdomain.com/callback', // Replace with your callback URL
+        'callback_url' => 'https://4467-41-90-181-168.ngrok-free.app/mpesa/callback', // Replace with your callback URL
     ],
 
     'mailgun' => [

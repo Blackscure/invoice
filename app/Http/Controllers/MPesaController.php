@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\MPesaService;
 use App\Models\Invoice;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
@@ -66,88 +67,96 @@ class MPesaController extends Controller
 
     public function callback(Request $request)
     {
-        // Handle the callback from M-Pesa here
-        // Log the response or store it in the database
-        \Log::info('M-Pesa Callback:', $request->all());
+        try {
+            // Log the callback data
+            \Log::info('MPesa Callback Data:', $request->all());
 
-        return response()->json(['status' => 'success']);
+            // Example callback data validation
+            $transactionData = $request->all();
+            $request->validate([
+                'Body.stkCallback' => 'required|array',
+                'Body.stkCallback.CallbackMetadata' => 'required|array',
+                'Body.stkCallback.CallbackMetadata.Item' => 'required|array'
+            ]);
+
+            $callback = $transactionData['Body']['stkCallback'];
+
+            if ($callback['ResultCode'] == 0) {
+                $items = $callback['CallbackMetadata']['Item'];
+                $data = [];
+                foreach ($items as $item) {
+                    $data[$item['Name']] = $item['Value'];
+                }
+
+                // Example of extracted data (depends on M-Pesa response)
+                $transactionId = $data['MpesaReceiptNumber'] ?? null;
+                $phoneNumber = $data['PhoneNumber'] ?? null;
+                $amount = $data['Amount'] ?? null;
+                $invoiceNumber = $data['AccountReference'] ?? null;
+
+                if (!$transactionId || !$phoneNumber || !$amount || !$invoiceNumber) {
+                    throw new \Exception('Missing required callback data');
+                }
+
+                // Find the invoice
+                $invoice = Invoice::where('invoice_number', $invoiceNumber)->firstOrFail();
+
+                // Create a transaction record
+                Transaction::create([
+                    'invoice_id' => $invoice->id,
+                    'transaction_id' => $transactionId,
+                    'phone_number' => $phoneNumber,
+                    'amount' => $amount,
+                    'status' => 'success',
+                ]);
+
+                // Update invoice status
+                $invoice->status = 'paid';
+                $invoice->save();
+
+                return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+            } else {
+                // Handle failed transaction
+                return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Transaction Failed']);
+            }
+        } catch (ValidationException $e) {
+            return response()->json([
+                'ResultCode' => 1,
+                'ResultDesc' => 'Validation Error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'ResultCode' => 1,
+                'ResultDesc' => 'Invoice not found',
+                'error' => $e->getMessage()
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('MPesa Callback Error:', ['exception' => $e]);
+            return response()->json([
+                'ResultCode' => 1,
+                'ResultDesc' => 'An error occurred',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
+    public function getTransactions()
+    {
+        try {
+            // Fetch all transactions from the database
+            $transactions = Transaction::all();
 
+            // Return the transactions as a JSON response
+            return response()->json($transactions);
+        } catch (\Exception $e) {
+            // Handle any exceptions that may occur
+            \Log::error('Error fetching transactions:', ['exception' => $e]);
+            return response()->json([
+                'message' => 'An error occurred while fetching transactions',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
-    // public function callback(Request $request)
-    // {
-    //     try {
-    //         // Log the callback data
-    //         \Log::info('MPesa Callback Data:', $request->all());
-
-    //         // Example callback data validation
-    //         $transactionData = $request->all();
-    //         $request->validate([
-    //             'Body.stkCallback' => 'required|array',
-    //             'Body.stkCallback.CallbackMetadata' => 'required|array',
-    //             'Body.stkCallback.CallbackMetadata.Item' => 'required|array'
-    //         ]);
-
-    //         $callback = $transactionData['Body']['stkCallback'];
-
-    //         if ($callback['ResultCode'] == 0) {
-    //             $items = $callback['CallbackMetadata']['Item'];
-    //             $data = [];
-    //             foreach ($items as $item) {
-    //                 $data[$item['Name']] = $item['Value'];
-    //             }
-
-    //             // Example of extracted data (depends on M-Pesa response)
-    //             $transactionId = $data['MpesaReceiptNumber'] ?? null;
-    //             $phoneNumber = $data['PhoneNumber'] ?? null;
-    //             $amount = $data['Amount'] ?? null;
-    //             $invoiceNumber = $data['AccountReference'] ?? null;
-
-    //             if (!$transactionId || !$phoneNumber || !$amount || !$invoiceNumber) {
-    //                 throw new \Exception('Missing required callback data');
-    //             }
-
-    //             // Find the invoice
-    //             $invoice = Invoice::where('invoice_number', $invoiceNumber)->firstOrFail();
-
-    //             // Create a transaction record
-    //             Transaction::create([
-    //                 'invoice_id' => $invoice->id,
-    //                 'transaction_id' => $transactionId,
-    //                 'phone_number' => $phoneNumber,
-    //                 'amount' => $amount,
-    //                 'status' => 'success',
-    //             ]);
-
-    //             // Update invoice status
-    //             $invoice->status = 'paid';
-    //             $invoice->save();
-
-    //             return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
-    //         } else {
-    //             // Handle failed transaction
-    //             return response()->json(['ResultCode' => 1, 'ResultDesc' => 'Transaction Failed']);
-    //         }
-    //     } catch (ValidationException $e) {
-    //         return response()->json([
-    //             'ResultCode' => 1,
-    //             'ResultDesc' => 'Validation Error',
-    //             'errors' => $e->errors()
-    //         ], 422);
-    //     } catch (ModelNotFoundException $e) {
-    //         return response()->json([
-    //             'ResultCode' => 1,
-    //             'ResultDesc' => 'Invoice not found',
-    //             'error' => $e->getMessage()
-    //         ], 404);
-    //     } catch (\Exception $e) {
-    //         \Log::error('MPesa Callback Error:', ['exception' => $e]);
-    //         return response()->json([
-    //             'ResultCode' => 1,
-    //             'ResultDesc' => 'An error occurred',
-    //             'error' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
 }
