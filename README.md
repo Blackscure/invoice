@@ -14,36 +14,51 @@ Ngrok
 
 ## Installation Steps
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1.Clone the Repository
+    git clone <your-repository-url>
 
-### Premium Partners
+2. Install Dependencies
+    composer install
+    npm install
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+3. Environment Setup
+   Copy the .env.example file to create your .env file:
 
-## Contributing
+4. Generate Application Key
+   php artisan key:generate
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+5. Configure Database
+   
+Update your .env file to use SQLite. Make sure the following settings are in place:
+DB_CONNECTION=sqlite
+DB_DATABASE=/absolute/path/to/database/database.sqlite
 
-## Code of Conduct
+Create the SQLite database file:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+touch /absolute/path/to/database/database.sqlite
 
-## Security Vulnerabilities
+Make sure the database directory exists:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+mkdir -p database
 
-## License
+6. Run Migrations
+   php artisan migrate
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+7. Start Ngrok
+Download and install Ngrok from ngrok.com.
+
+Start Ngrok to tunnel HTTP requests to your local server:
+ngrok http 8000
+
+8. Update Callback URLs
+Update your config/services.php file with the Ngrok forwarding URL:
+
+9. Serve the Application
+Start the Laravel development server:
+
+php artisan serve
+
+
+
+
